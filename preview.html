@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#06351f">
+<title>Palpites Promotor Dinho</title>
+<style>
+:root{--green:#075c32;--gold:#b88a22;--bg:#f3f6f4;--ink:#17231c;--muted:#68766e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#06351f,#0d7a43);color:#fff;padding:28px 18px;border-radius:0 0 24px 24px}
+.wrap{max-width:520px;margin:auto}
+.brand{font-size:13px;font-weight:bold;letter-spacing:1px}
+h1{font-size:28px;margin:10px 0}
+main{padding:18px 16px 28px}
+.date-card,.number-card,.group-card{background:white;border-radius:14px;padding:15px;margin-bottom:10px;box-shadow:0 4px 16px #102c1b0c}
+.date{font-size:21px;font-weight:bold;margin-top:5px}
+h2{font-size:17px;margin:23px 0 11px}
+.numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.number-card{text-align:center;padding:13px 5px;margin:0}
+.number{font-size:25px;font-weight:bold;color:var(--green);overflow-wrap:anywhere}
+.caption{font-size:12px;color:var(--muted);margin-top:5px}
+.group-card{display:flex;justify-content:space-between;align-items:center}
+.group-number{font-weight:bold;color:var(--green)}
+.share{display:block;width:100%;border:0;border-radius:13px;background:var(--green);color:white;padding:15px;margin-top:12px;font-size:16px;font-weight:bold;text-align:center;text-decoration:none;cursor:pointer}
+.gold{background:var(--gold)}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+footer{text-align:center;padding:15px 20px 25px;color:var(--muted);font-size:12px}
+.toast{display:none;background:#173d29;color:white;border-radius:10px;padding:10px;margin-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">🍀 PROMOTOR DINHO APRESENTA</div>
+    <h1>Palpites Promotor Dinho</h1>
+    <p>Seus números do dia em um só lugar.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="date-card">
+    <div>PALPITES DE HOJE</div>
+    <div class="date" id="dateLabel"></div>
+    <div>✓ Fixos no dia</div>
+  </section>
+
+  <h2>Dezenas do dia</h2>
+  <section class="numbers" id="numbers"></section>
+
+  <h2>Milhares do dia</h2>
+  <section class="numbers" id="thousands"></section>
+
+  <h2>Grupos correspondentes</h2>
+  <section id="groups"></section>
+
+  <h2>Ternos de dezenas</h2>
+  <section class="numbers" id="dozenTernos"></section>
+
+  <h2>Ternos de grupos</h2>
+  <section class="numbers" id="groupTernos"></section>
+
+  <h2>Duques de grupos</h2>
+  <section class="numbers" id="groupDuques"></section>
+
+  <button class="share" id="shareButton">Compartilhar palpites</button>
+  <a class="share gold" href="https://app.elliteapostas.net?p=FpeFsgEd" target="_blank" rel="noopener">Cadastrar na Ellite Apostas</a>
+
+  <div class="toast" id="toast"></div>
+  <p class="hint">Palpites recreativos. Os resultados são imprevisíveis e não há garantia de acerto.</p>
+</main>
+
+<footer class="wrap">Palpites Promotor Dinho · Uso recreativo.</footer>
+
+<script>
+(function(){
+"use strict";
+
+const animals=[
+["Avestruz",1],["Águia",5],["Burro",9],["Borboleta",13],
+["Cachorro",17],["Cabra",21],["Carneiro",25],["Camelo",29],
+["Cobra",33],["Coelho",37],["Cavalo",41],["Elefante",45],
+["Galo",49],["Gato",53],["Jacaré",57],["Leão",61],
+["Macaco",65],["Porco",69],["Pavão",73],["Peru",77],
+["Touro",81],["Tigre",85],["Urso",89],["Veado",93],["Vaca",97]
+];
+
+function getBrazilDate(){
+ const parts=new Intl.DateTimeFormat("en-CA",{
+  timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
+ }).formatToParts(new Date());
+ const p={};
+ parts.forEach(x=>{if(x.type!=="literal")p[x.type]=x.value});
+ return {day:p.day,month:p.month,year:p.year};
+}
+
+const date=getBrazilDate();
+document.getElementById("dateLabel").textContent=
+ date.day+"/"+date.month+"/"+date.year;
+
+function getDailyPicks(){
+ const digits=(date.day+date.month+date.year).split("").map(Number);
+ const sum=digits.reduce((a,b)=>a+b,0);
+ const d=Number(date.day),m=Number(date.month),y=Number(date.year.slice(-2));
+ const raw=[sum%100,(d+m)%100,(d+y)%100];
+ const values=[];
+ raw.forEach(n=>{
+  const s=String(n).padStart(2,"0");
+  values.push(s,s[1]+s[0]);
+ });
+ return [...new Set(values)].slice(0,6).map(n=>n.padStart(2,"0"));
+}
+
+function groupFor(n){
+ const num=Number(n);
+ const g=Math.min(25,Math.max(1,Math.floor(((num===0?100:num)-1)/4)+1));
+ return {group:g,animal:animals[g-1][0]};
+}
+
+const picks=getDailyPicks();
+const groups=picks.map(groupFor);
+
+function addCard(container,value,label){
+ const card=document.createElement("div");
+ card.className="number-card";
+ const n=document.createElement("div");
+ n.className="number";
+ n.textContent=value;
+ const c=document.createElement("div");
+ c.className="caption";
+ c.textContent=label;
+ card.append(n,c);
+ document.getElementById(container).appendChild(card);
+}
+
+picks.forEach(n=>addCard("numbers",n,"Dezena"));
+
+const thousands=picks.flatMap(n=>{
+ const suffix=String(n).padStart(2,"0");
+ return [date.day+suffix,date.month+suffix];
+});
+picks.forEach((n,i)=>{
+ addCard("thousands",thousands[i*2]+" e "+thousands[i*2+1],"Dezena "+n);
+});
+
+picks.forEach(n=>{
+ const a=groupFor(n);
+ const row=document.createElement("div");
+ row.className="group-card";
+ const name=document.createElement("strong");
+ name.textContent=n+" — Grupo "+String(a.group).padStart(2,"0")+" ("+a.animal+")";
+ row.appendChild(name);
+ document.getElementById("groups").appendChild(row);
+});
+
+function combinations(items,size,limit){
+ const out=[];
+ function walk(start,current){
+  if(current.length===size){out.push(current.slice());return}
+  for(let i=start;i<items.length;i++){
+   current.push(items[i]);walk(i+1,current);current.pop();
+   if(out.length>=limit)return;
+  }
+ }
+ walk(0,[]);
+ return out.slice(0,limit);
+}
+
+const dozenTernos=combinations(picks,3,8);
+const groupTernos=combinations(groups,3,8);
+const duques=combinations(groups,2,8);
+
+dozenTernos.forEach(c=>addCard("dozenTernos",c.join("-"),"Terno de dezenas"));
+groupTernos.forEach(c=>addCard("groupTernos",c.map(x=>String(x.group).padStart(2,"0")).join("-"),"Terno de grupos"));
+duques.forEach(c=>addCard("groupDuques",c.map(x=>String(x.group).padStart(2,"0")).join("-"),"Duque de grupos"));
+
+function shareText(){
+ const thousandLines=picks.map((n,i)=>n+": "+thousands[i*2]+" e "+thousands[i*2+1]);
+ const groupLines=picks.map(n=>{
+  const a=groupFor(n);
+  return n+" Grupo "+String(a.group).padStart(2,"0")+" ("+a.animal+")";
+ });
+ return "🍀 PALPITES PROMOTOR DINHO\n"+
+ date.day+"/"+date.month+"/"+date.year+
+ "\n\nDezenas do dia:\n\n"+picks.join(" · ")+
+ "\n\nMilhares do dia:\n\n"+thousandLines.join("\n")+
+ "\n\nGrupos correspondentes:\n\n"+groupLines.join("\n")+
+ "\n\nTernos de dezenas:\n\n"+dozenTernos.map(c=>c.join("-")).join(" | ")+
+ "\n\nTernos de grupos:\n\n"+groupTernos.map(c=>c.map(x=>String(x.group).padStart(2,"0")).join("-")).join(" | ")+
+ "\n\nDuques de grupos:\n\n"+duques.map(c=>c.map(x=>String(x.group).padStart(2,"0")).join("-")).join(" | ")+
+ "\n\nCadastrar na Ellite Apostas:\n https://app.elliteapostas.net?p=FpeFsgEd"+
+ "\n\nPalpites recreativos, sem garantia de resultado.";
+}
+
+document.getElementById("shareButton").addEventListener("click",async()=>{
+ const text=shareText();
+ if(navigator.share){
+  try{await navigator.share({title:"Palpites Promotor Dinho",text});}
+  catch(e){if(e.name!=="AbortError")alert("Não foi possível compartilhar.")}
+ }else{
+  try{
+   await navigator.clipboard.writeText(text);
+   alert("Palpites copiados! Cole no WhatsApp.");
+  }catch(e){
+   const area=document.createElement("textarea");
+   area.value=text;document.body.appendChild(area);
+   area.select();document.execCommand("copy");area.remove();
+   alert("Palpites copiados. Cole no WhatsApp.");
+  }
+ }
+});
+})();
+</script>
+</body>
+</html>
